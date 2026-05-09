@@ -1,8 +1,7 @@
 "use server";
 
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { auth } from "@/lib/firebase";
 import { adminDb } from "@/lib/firebase-admin";
 
 type RegisterInput = {
@@ -13,7 +12,6 @@ type RegisterInput = {
 
 export async function registerUser(data: RegisterInput) {
   try {
-    // 1️⃣ إنشاء المستخدم في Firebase Auth
     const userCred = await createUserWithEmailAndPassword(
       auth,
       data.email,
@@ -22,12 +20,10 @@ export async function registerUser(data: RegisterInput) {
 
     const user = userCred.user;
 
-    // 2️⃣ تحديث الاسم
     await updateProfile(user, {
       displayName: data.name,
     });
 
-    // 3️⃣ 🔥 تخزين المستخدم في Firestore (دي أهم خطوة)
     await adminDb.collection("users").doc(user.uid).set({
       name: data.name,
       email: data.email,
@@ -36,6 +32,7 @@ export async function registerUser(data: RegisterInput) {
 
     return {
       success: true,
+      message: "Account created successfully",
       user: {
         id: user.uid,
         email: user.email,
@@ -43,9 +40,28 @@ export async function registerUser(data: RegisterInput) {
       },
     };
   } catch (error: any) {
+    let errorMessage = "Something went wrong";
+
+    switch (error.code) {
+      case "auth/email-already-in-use":
+        errorMessage = "Email already exists";
+        break;
+
+      case "auth/invalid-email":
+        errorMessage = "Invalid email address";
+        break;
+
+      case "auth/weak-password":
+        errorMessage = "Password should be at least 6 characters";
+        break;
+
+      default:
+        errorMessage = error.message;
+    }
+
     return {
       success: false,
-      message: error.message,
+      message: errorMessage,
     };
   }
 }

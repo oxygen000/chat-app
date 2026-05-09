@@ -11,9 +11,12 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useState } from "react";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import Link from "next/link";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
 
   const form = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
@@ -36,14 +39,27 @@ function getErrorMessage(code: string) {
   }
 }
 
-  const onSubmit = async (data: LoginSchema) => {
-    await signIn("credentials", {
+const onSubmit = async (data: LoginSchema) => {
+  try {
+    const response = await signIn("credentials", {
       email: data.email,
       password: data.password,
-      redirect: true,
+      redirect: false,
       callbackUrl: "/chat",
     });
-  };
+
+    if (response?.error) {
+      toast.error("Invalid email or password");
+      return;
+    }
+
+    toast.success("Login Successfully");
+
+    router.push("/chat");
+  } catch (error) {
+    toast.error("Something went wrong");
+  }
+};
 
   return (
     <form

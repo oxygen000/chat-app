@@ -31,23 +31,20 @@ export default function RegisterForm() {
   });
 
   const onSubmit = async (data: RegisterSchema) => {
-      
+    try {
+      const response = await registerUser(data);
 
-    const res = await registerUser({
-      name: data.name,
-      email: data.email,
-      password: data.password,
-    });
+      if (!response.success) {
+        toast.error(response.message);
+        return;
+      }
 
-    if (!res.success) {
-      console.error(res.message);
-        toast.error("Failed to create account: " + res.message);
-      return;
+      toast.success(response.message);
+
+      router.push("/chat");
+    } catch (error) {
+      toast.error("Something went wrong");
     }
-    router.push("/login");
-    toast.success("Account created successfully! Please login.");
-    console.log("User created:", res.user);
-
   };
 
   return (
